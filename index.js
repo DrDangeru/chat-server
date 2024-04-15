@@ -54,6 +54,6 @@ io.on('connection', (socket) => {
 });
 
 app.use(router);
-io.listen(PORT, () => console.log(`IO istening on port ${PORT}`));
-// app.listen(PORT, () => console.log(`Server started on ${PORT}`))
+//io.listen(PORT, () => console.log(`IO istening on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server started on ${PORT}`))
 
