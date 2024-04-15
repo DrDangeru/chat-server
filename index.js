@@ -10,27 +10,36 @@ const { addUser, removeUser, getUser, getUsersInRoom } =
 const PORT = 5000; //  process.env.PORT || 
 const app = express();
 
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   next();
 });
 
-const httpServer = createServer(app);
 
-const io = new Server(httpServer, {
-  allowEIO3: true,
+
+//const httpServer = createServer(app);
+const io = new Server(PORT, {
   cors: {
-    origin: '*'
+    origin: "http://localhost:3000"
   }
 });
+// const io = new Server(httpServer, {
+//   path: '/socket.io',
+//   allowEIO4: true,
+//   cors: {
+//     origin: '*'
+//   }
+// });
+
 // io.use(cors());
 // socket.io handles its own cors.. via http server setup above
 // const server = http.createServer(app);
 // const io = socketio(server); Old ver Cors non compat, trying new one
 
 io.on('connection', (socket) => {
-  socket.on('join', ({ name, room }, callback) => {
+  console.log('conected to server')
+  socket.on('chat', ({ name, room }, callback) => {
     console.log(name, room, 'This is the name/room serverside');
     if (error) return callback(error);
 
@@ -60,7 +69,7 @@ io.on('connection', (socket) => {
   });
 });
 
-app.use(router);
+//app.use(router);
 //io.listen(PORT, () => console.log(`IO istening on port ${PORT}`));
-app.listen(PORT, () => console.log(`Server started on ${PORT}`))
+//app.listen(PORT, () => console.log(`Server started on ${PORT}`))
 
