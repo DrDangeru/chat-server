@@ -35,7 +35,7 @@ const io = new Server(PORT, {
 // const server = http.createServer(app);
 // const io = socketio(server); Old ver Cors non compat, trying new one
 
-io.on('connect', (socket) => {
+io.on('connection', (socket) => {
   console.log(`conected to server from client`)
   socket.on('join', (name, room, callback, error) => { // was chat but cl is send jn
     console.log(name, room, 'This is the name/room serverside');
