@@ -2,26 +2,24 @@ const express = require('express');
 const socketio = require('socket.io')
 // const http = require('http'); this is createServer
 const router = require('./router.js');
-const { createServer } = require('node:http');
+const { createServer } = require('node:http'); //
 const { Server } = require("socket.io");
 const { addUser, removeUser, getUser, getUsersInRoom } =
-  require('./users.js');
-// const cors = require('cors');
+  require('./users.js'); // maybe should include user
 const PORT = 5000; //  process.env.PORT || 
 const app = express();
 
-app.use(function (req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-  next();
-});
-
-
+// app.use(function (req, res, next) {
+//   res.header("Access-Control-Allow-Origin", "*");
+//   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+//   next();
+// });  Not Used
 
 //const httpServer = createServer(app);
 const io = new Server(PORT, {
   cors: {
-    origin: "http://localhost:3000"
+    origin: "http://localhost:3000",
+    methods: ['POST, GET']
   }
 });
 // const io = new Server(httpServer, {
@@ -37,19 +35,19 @@ const io = new Server(PORT, {
 // const server = http.createServer(app);
 // const io = socketio(server); Old ver Cors non compat, trying new one
 
-io.on('connection', (socket) => {
-  console.log('conected to server')
-  socket.on('chat', ({ name, room }, callback) => {
+io.on('connect', (socket) => {
+  console.log(`conected to server from client`)
+  socket.on('join', (name, room, callback, error) => { // was chat but cl is send jn
     console.log(name, room, 'This is the name/room serverside');
     if (error) return callback(error);
 
-    socket.emit('message', {
-      user: admin, text: `${user.name},
-    welcome to room ${user.room}`
+    socket.emit('message', { // down 10lines all name and user were user.name and user.room
+      user: 'admin', text: `${name},
+    welcome to room ${room}`
     });
     socket.broadcast.to(user.room).emit('message', {
       user: 'admin',
-      text: `${user.name}, has joined!`
+      text: `${name}, has joined!`
     })
     socket.join(user.room, user.name);
     console.log(user.name, user.room, 'server joined with these');
