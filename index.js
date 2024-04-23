@@ -15,46 +15,63 @@ const io = require("socket.io")(httpServer, {
   }
 }); //works with or with httpServ 
 // io.use((socket, next) => {
-//   const username = socket.handshake.auth.username;
-//   if (!username) {
-//     return next(new Error("invalid username"));
-//   }
-//   socket.username = username;
-//   next();
-// });
+
+// Initialize a Set to store connected users
+const connectedUsers = new Set();
 
 io.on('connection', (socket) => {
-  socket.broadcast.emit('hi'); // socket.on deprecated
-  // socket broadcast does nothing as we have not 
-  // connected to any namespace. emit likewise.
-  // Probably nothing on client side to handle this comms.
-  // 
-  socket.on('join', ({ room, name }, callback) => {// was chat but cl is send 
+  socket.on('join', ({ room, name }, callback) => {
+    if (connectedUsers.has(socket.id)) {
+      // User has already joined, do not proceed
+      return;
+    }
+
     console.log(name, room, 'This is the name/room serverside');
-    const { error, user } = addUser({ id: socket.id, name: name, room: room });
+    const { user, error } = addUser(socket.id, { name, room });
     console.log('completed add user', user);
     if (error) return callback(error);
 
+    // Add user to connected users
+    connectedUsers.add(socket.id);
+
     socket.emit('message', {
-      user: 'admin', text:
-        `${user.name}, welcome to room ${room}`
-    });
-    socket.broadcast.to(user.room).emit('message', {
       user: 'admin',
-      text: `${user.name}, has joined!`
-    })
-    socket.join(user.room);
+      text: `${user.name}, welcome to room ${room}`
+    });
+
+    socket.join(user.room); // Join the room after emitting the message
+
     console.log(user.name, user.room, 'server joined with these');
-    callback(); // everytime callback is sent to frontend
-    //with or w/out error this is end of join handling
-    // other functions are separated but in the io.on closure
+    callback(); // Callback after everything is done
   });
 
-  socket.on('sendMessage', ({ user, message }, callback) => {
+  socket.on('sendMessage', (user, message, callback) => {
+    socket.emit('message', {
+      user: 'admin',
+      text: `${user.name}, welcome to room ${user.room}`
+    });
     console.log(user, message, callback, 'serverSide send msg ev');
-    // const user = getUser(user.id); ^disconnects without user tr.'name'
-    // const room = user.room;
-    // io.to(room).emit('message', { user: user.name, text: message });
+  });
+
+  socket.on('disconnect', (reason, details) => {
+    // Remove user from connected users on disconnect
+    const user = removeUser(socket.id);
+    if (user) {
+      io.to(user.room).emit('message', {
+        text: `${user.name} disconnected`
+      })
+    }
+    connectedUsers.delete(socket.id)
+    console.log(reason);
+    console.log(details);
+  });
+
+
+  socket.on('sendMessage', (user, message, callback) => {
+    console.log(user, message, callback, 'serverSide send msg ev');
+    const user = user.name;
+    const room = user.room;
+    io.to(room).emit('message', { user: user.name, text: message });
     //was user.room
     // callback();
   });
@@ -65,7 +82,8 @@ io.on('connection', (socket) => {
     console.log(details);
   });
 });
-//app.use(router);
+
+// httpServer.use(router);
 httpServer.listen(PORT, () => console.log(`IO istening on port ${PORT}`));
-//app.listen(PORT, () => console.log(`Server started on ${PORT}`))
+
 
