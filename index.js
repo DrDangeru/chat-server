@@ -30,12 +30,20 @@ io.on('connection', (socket) => {
     callback(error => console.log(error));
   });
 
-
   socket.on('sendMessage', ({ message, name, room }) => {
+    io.to(room).emit('message', {
+      user: name,
+      text: message,
+      room: room
+    });
+  });
+
+  socket.on('message', ({ message, name }) => {
     io.to(room).emit('message',
       {
-        user: name,
-        text: message, // `${message}`
+        user: name, // message.user
+        text: message.text, // `${message}`
+        room: room
       });
 
   });
