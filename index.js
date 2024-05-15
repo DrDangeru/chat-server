@@ -17,12 +17,12 @@ const io = require("socket.io")(httpServer, {
 });
 
 io.on('connection', (socket) => {
-  // console.log('A user connected');
-  // socket.broadcast.emit("hello", "from the admin");
+
   socket.on('join', ({ room, name }, callback) => {
     console.log('Connected user', { name, room }, socket.id);
     addUser(socket.id, name, room)
-    console.log('Connected user got from helper', getUser(socket.id));
+    // console.log('Connected user got from helper', 
+    // getUser(socket.id));
     socket.emit('message', {
       user: 'admin',
       text: `${name}, welcome to room ${room}`
@@ -31,12 +31,13 @@ io.on('connection', (socket) => {
     callback(error => console.log(error));
   });
 
-  socket.on('sendMessage', ({ message, name, room, type, body, mimeType, fileName }) => {
+  socket.on('message', ({ message, name, room,
+    type, body, mimeType, fileName }) => {
     const messageObj = type === 'file' ? {
       user: name,
-      text: message,
+      message: message,
       room: room,
-      type: type,
+      type: 'file',
       body: body,
       mimeType: mimeType,
       fileName: fileName
@@ -45,36 +46,28 @@ io.on('connection', (socket) => {
       text: message,
       room: room
     };
-
-    io.to(room).emit('sendMessage', messageObj);
+    io.to(room).emit('message', messageObj);
     console.log('Message sent:', messageObj);
   });
 
-  // socket.on('sendMessage', ({ message, name, room }) => {
-  //   io.to(room).emit('message', {
+  // socket.on('message', ({ message, name, room, type, body, mimeType, fileName }) => {
+  //   const messageObj = type === 'file' ? {
+  //     user: name,
+  //     text: message,
+  //     room: room,
+  //     type: type,
+  //     body: body,
+  //     mimeType: mimeType,
+  //     fileName: fileName
+  //   } : {
   //     user: name,
   //     text: message,
   //     room: room
-  //   });
+  //   };
+
+  //   console.log('Message received:', messageObj);
   // });
-
-  socket.on('message', ({ message, name, room, type, body, mimeType, fileName }) => {
-    const messageObj = type === 'file' ? {
-      user: name,
-      text: message,
-      room: room,
-      type: type,
-      body: body,
-      mimeType: mimeType,
-      fileName: fileName
-    } : {
-      user: name,
-      text: message,
-      room: room
-    };
-
-    console.log('Message received:', messageObj);
-  });
+  // looks identical to above... so no need for it
 
   socket.on('disconnect', (reason) => {
     console.log('A user disconnected');
@@ -93,6 +86,7 @@ io.on('connection', (socket) => {
   //     callback({ message: err ? "failure" : "success" });
   //   });
   // });
+  // should not be needed
 
 });
 httpServer.listen(PORT, () => console.log(`Socket.IO server listening on port ${PORT}`))
