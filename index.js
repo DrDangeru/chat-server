@@ -8,6 +8,10 @@ const PORT = 5000;
 const app = express();
 const { writeFile } = require('fs');
 
+const Database = require('better-sqlite3');
+
+const db = new Database('chatDb.db', { verbose: console.log });
+
 const httpServer = require("http").createServer(app);
 const io = require("socket.io")(httpServer, {
   maxHttpBufferSize: 1e8,
@@ -15,6 +19,19 @@ const io = require("socket.io")(httpServer, {
     origin: "http://localhost:3000",
   }
 });
+
+let date = new Date().toISOString().slice(0, 18);
+const createDb = `CREATE TABLE IF NOT EXISTS chatDb(
+  id SERIAL PRIMARY KEY,
+  date TIMESTAMP NOT NULL,
+  room VARCHAR(100) NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  message TEXT NOT NULL
+)`;
+db.exec(createDb);
+db.pragma('journal_mode = WAL');
+
+
 
 io.on('connection', (socket) => {
 
@@ -48,26 +65,14 @@ io.on('connection', (socket) => {
     };
     io.to(room).emit('message', messageObj);
     console.log('Message sent:', messageObj);
+
+    const stmt = db.prepare(`INSERT INTO chatDb (date, room, name, message) VALUES (?, ?, ?, ?)`);
+    stmt.run(date, room, name, message);
+    db.close();
+    // db.exec(`INSERT INTO chatDb (date, room, name, message),
+    //   VALUES(?,?,?,?), ('${date}', '${room}', '${name}', '${text}') `);
   });
 
-  // socket.on('message', ({ message, name, room, type, body, mimeType, fileName }) => {
-  //   const messageObj = type === 'file' ? {
-  //     user: name,
-  //     text: message,
-  //     room: room,
-  //     type: type,
-  //     body: body,
-  //     mimeType: mimeType,
-  //     fileName: fileName
-  //   } : {
-  //     user: name,
-  //     text: message,
-  //     room: room
-  //   };
-
-  //   console.log('Message received:', messageObj);
-  // });
-  // looks identical to above... so no need for it
 
   socket.on('disconnect', (reason) => {
     console.log('A user disconnected');
@@ -89,4 +94,10 @@ io.on('connection', (socket) => {
   // should not be needed
 
 });
+const room = 'sdfg';
+const stmt = db.prepare('SELECT * FROM chatDb WHERE room = ?');
+const rows = stmt.all(room);
+
+console.log(rows);
+
 httpServer.listen(PORT, () => console.log(`Socket.IO server listening on port ${PORT}`))
