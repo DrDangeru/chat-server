@@ -7,7 +7,6 @@ const { addUser, removeUser, getUser, getUsersInRoom } = require('./users.js');
 const PORT = 5000;
 const app = express();
 const { writeFile } = require('fs');
-
 const Database = require('better-sqlite3');
 
 const db = new Database('chatDb.db', { verbose: console.log });
@@ -22,7 +21,7 @@ const io = require("socket.io")(httpServer, {
 
 let date = new Date().toISOString().slice(0, 18);
 const createDb = `CREATE TABLE IF NOT EXISTS chatDb(
-  id SERIAL PRIMARY KEY,
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
   date TIMESTAMP NOT NULL,
   room VARCHAR(100) NOT NULL,
   name VARCHAR(100) NOT NULL,
@@ -30,7 +29,6 @@ const createDb = `CREATE TABLE IF NOT EXISTS chatDb(
 )`;
 db.exec(createDb);
 db.pragma('journal_mode = WAL');
-
 
 
 io.on('connection', (socket) => {
@@ -68,10 +66,43 @@ io.on('connection', (socket) => {
 
     const stmt = db.prepare(`INSERT INTO chatDb (date, room, name, message) VALUES (?, ?, ?, ?)`);
     stmt.run(date, room, name, message);
-    db.close();
+    // db.close();
     // db.exec(`INSERT INTO chatDb (date, room, name, message),
     //   VALUES(?,?,?,?), ('${date}', '${room}', '${name}', '${text}') `);
   });
+
+  // const sqlite = require('better-sqlite3');
+  // const db = new sqlite('chatDb.sqlite');
+
+  socket.on('search', (params) => {
+    try {
+      const { date, name, room, message } = params;
+
+      const query = `
+      SELECT * FROM chatDb 
+      WHERE 
+        date = COALESCE(?, date) 
+        AND name = COALESCE(?, name) 
+        AND room LIKE COALESCE(?, room) 
+        AND message LIKE COALESCE(?, message)
+    `;
+
+      const searcha = db.prepare(query);
+
+      const results = searcha.all(date, name, room ? `%${room}%` : null, message ? `%${message}%` : null);
+
+      socket.emit('searchResults', results);
+    } catch (error) {
+      console.error('Database query failed:', error);
+      socket.emit('searchError', { error: 'Database query failed' });
+    }
+  });
+
+  // Close the database connection properly when the server shuts down
+  // process.on('SIGINT', () => {
+  //   db.close();
+  //   process.exit();
+  // });
 
 
   socket.on('disconnect', (reason) => {
@@ -94,10 +125,10 @@ io.on('connection', (socket) => {
   // should not be needed
 
 });
-const room = 'sdfg';
-const stmt = db.prepare('SELECT * FROM chatDb WHERE room = ?');
-const rows = stmt.all(room);
+// const room = room;
+// const stmt = db.prepare('SELECT * FROM chatDb WHERE room = ?');
+// const rows = stmt.all(room);
 
-console.log(rows);
+// console.log(rows);
 
 httpServer.listen(PORT, () => console.log(`Socket.IO server listening on port ${PORT}`))
