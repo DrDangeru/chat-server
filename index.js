@@ -82,9 +82,9 @@ io.on('connection', (socket) => {
       SELECT * FROM chatDb 
       WHERE 
         date = COALESCE(?, date) 
-        AND name = COALESCE(?, name) 
-        AND room LIKE COALESCE(?, room) 
-        AND message LIKE COALESCE(?, message)
+        OR name = COALESCE(?, name) 
+        OR room LIKE COALESCE(?, room) 
+        OR message LIKE COALESCE(?, message)
     `;
 
       const searcha = db.prepare(query);
@@ -92,18 +92,12 @@ io.on('connection', (socket) => {
       const results = searcha.all(date, name, room ? `%${room}%` : null, message ? `%${message}%` : null);
 
       socket.emit('searchResults', results);
+      console.log('searchResults', results);
     } catch (error) {
       console.error('Database query failed:', error);
       socket.emit('searchError', { error: 'Database query failed' });
     }
   });
-
-  // Close the database connection properly when the server shuts down
-  // process.on('SIGINT', () => {
-  //   db.close();
-  //   process.exit();
-  // });
-
 
   socket.on('disconnect', (reason) => {
     console.log('A user disconnected');
@@ -111,7 +105,7 @@ io.on('connection', (socket) => {
     if (user) {
       io.to(user.room).emit('message', {
         user: 'admin',
-        text: `${user.name} has left the chat`
+        text: reason`${user.name} has left the chat`// was w/out reason
       });
     }
   });
@@ -125,6 +119,8 @@ io.on('connection', (socket) => {
   // should not be needed
 
 });
+
+//search
 // const room = room;
 // const stmt = db.prepare('SELECT * FROM chatDb WHERE room = ?');
 // const rows = stmt.all(room);
