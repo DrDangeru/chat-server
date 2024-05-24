@@ -71,27 +71,39 @@ io.on('connection', (socket) => {
     //   VALUES(?,?,?,?), ('${date}', '${room}', '${name}', '${text}') `);
   });
 
-  // const sqlite = require('better-sqlite3');
-  // const db = new sqlite('chatDb.sqlite');
 
-  socket.on('search', (params) => {
+  socket.on('search', (params) => { // 
+
     try {
-      const { date, name, room, message } = params;
+      const { date } = params; //name, room, message
+
+      console.log('date', date);
 
       const query = `
-      SELECT * FROM chatDb 
-      WHERE 
-        date = COALESCE(?, date) 
-        OR name = COALESCE(?, name) 
-        OR room LIKE COALESCE(?, room) 
-        OR message LIKE COALESCE(?, message)
-    `;
+    SELECT * FROM chatDb 
+    WHERE date LIKE 'date%'
+`;
+
+
+      // AND(name = ? OR ? IS NULL)`
+
+
+      //   SELECT * FROM chatDb 
+      //   WHERE 
+      //     date = COALESCE(?, date) 
+      //     OR name = COALESCE(?, name) 
+      //     OR room LIKE COALESCE(?, room) 
+      //     OR message LIKE COALESCE(?, message)
+      // `;
 
       const searcha = db.prepare(query);
 
-      const results = searcha.all(date, name, room ? `%${room}%` : null, message ? `%${message}%` : null);
+      const results = searcha.all(date ? `${date}%` : null);
+      // name ? `%${name}%` : null,
+      // room ? `%${room}%` : null,
+      // message ? `%${message}%` : null);
 
-      socket.emit('searchResults', results);
+      io.to(room).emit('searchResults', results);
       console.log('searchResults', results);
     } catch (error) {
       console.error('Database query failed:', error);
@@ -105,7 +117,7 @@ io.on('connection', (socket) => {
     if (user) {
       io.to(user.room).emit('message', {
         user: 'admin',
-        text: reason`${user.name} has left the chat`// was w/out reason
+        text: `${user.name} has left the chat`// was w/out reason
       });
     }
   });
