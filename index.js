@@ -71,38 +71,36 @@ io.on('connection', (socket) => {
     //   VALUES(?,?,?,?), ('${date}', '${room}', '${name}', '${text}') `);
   });
 
-
-  socket.on('search', (params) => { // 
-
+  socket.on('search', (params) => {
     try {
-      const { date } = params; //name, room, message
+      let { date, room, name, message } = params;
+      console.log('search parameters:', params);
 
-      console.log('date', date);
+      // Convert empty strings to null
+      if (name === '') name = null;
+      if (message === '') message = null;
+
+      // Use wildcards for partial date matching
+      date = date ? `%${date}%` : null;
 
       const query = `
-    SELECT * FROM chatDb 
-    WHERE date LIKE 'date%'
-`;
+      SELECT date, room, name, message
+      FROM chatDb
+      WHERE (CAST(date AS TEXT) = ? OR ? IS NULL)
+        AND (room = ? OR ? IS NULL)
+        AND (name LIKE ? OR ? IS NULL)
+        AND (message LIKE ? OR ? IS NULL)
+    `;
 
+      const searchStmt = db.prepare(query);
+      const results = searchStmt.all(
+        date, date,
+        room, room,
+        name ? `%${name}%` : null, name,
+        message ? `%${message}%` : null, message
+      );
 
-      // AND(name = ? OR ? IS NULL)`
-
-
-      //   SELECT * FROM chatDb 
-      //   WHERE 
-      //     date = COALESCE(?, date) 
-      //     OR name = COALESCE(?, name) 
-      //     OR room LIKE COALESCE(?, room) 
-      //     OR message LIKE COALESCE(?, message)
-      // `;
-
-      const searcha = db.prepare(query);
-
-      const results = searcha.all(date ? `${date}%` : null);
-      // name ? `%${name}%` : null,
-      // room ? `%${room}%` : null,
-      // message ? `%${message}%` : null);
-
+      // Emit the search results to the room specified
       io.to(room).emit('searchResults', results);
       console.log('searchResults', results);
     } catch (error) {
@@ -110,6 +108,47 @@ io.on('connection', (socket) => {
       socket.emit('searchError', { error: 'Database query failed' });
     }
   });
+
+
+  //   socket.on('search', (params) => { // 
+
+  //     try {
+  //       const { date } = params; //name, room, message
+
+  //       console.log('date', date);
+
+  //       const query = `
+  // SELECT date
+  // FROM chatDb
+  // WHERE CAST(date AS TEXT) = ?
+  //     `;
+
+
+  //       // AND(name = ? OR ? IS NULL)`
+
+
+  //       //   SELECT * FROM chatDb 
+  //       //   WHERE 
+  //       //     date = COALESCE(?, date) 
+  //       //     OR name = COALESCE(?, name) 
+  //       //     OR room LIKE COALESCE(?, room) 
+  //       //     OR message LIKE COALESCE(?, message)
+  //       // `;
+
+  //       const searcha = db.prepare(query);
+
+  //       const results = searcha.all(date,
+  //         null, // name ? `%${name}%` :
+  //         room ? `%${room}%` : null,
+  //         null); //message ? `%${message}%` :
+
+  //       io.to(room).emit('searchResults', results);
+  //       console.log('searchResults', results);
+  //     } catch (error) {
+  //       console.error('Database query failed:', error);
+  //       socket.emit('searchError', { error: 'Database query failed' });
+  //     }
+  //   });
 
   socket.on('disconnect', (reason) => {
     console.log('A user disconnected');
