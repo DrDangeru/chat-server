@@ -93,6 +93,7 @@ io.on('connection', (socket) => {
 
       io.to(room).emit('searchResults', results);
       console.log('searchResults emitted', results);
+      console.log("room and message", room, message);
     } catch (error) {
       console.error('Database query failed:', error);
       socket.emit('searchError', { error: 'Database query failed' });
