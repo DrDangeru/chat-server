@@ -3,14 +3,12 @@ const socketio = require('socket.io')
 const { createServer, request } = require('node:http');
 const router = require('./router.js');
 const { addUser, removeUser, getUser, getUsersInRoom } = require('./users.js');
-// const { clearScreenDown } = require('node:readline');
 const PORT = 5000;
 const app = express();
 const { writeFile } = require('fs');
 const Database = require('better-sqlite3');
 
 const db = new Database('chatDb.db', { verbose: console.log });
-
 const httpServer = require("http").createServer(app);
 const io = require("socket.io")(httpServer, {
   maxHttpBufferSize: 1e8,
@@ -19,7 +17,7 @@ const io = require("socket.io")(httpServer, {
   }
 });
 
-let date = new Date().toISOString().slice(0, 18);
+let date = new Date().toISOString().slice(0, 19); // was 18
 const createDb = `CREATE TABLE IF NOT EXISTS chatDb(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   date TIMESTAMP NOT NULL,
@@ -36,8 +34,8 @@ io.on('connection', (socket) => {
   socket.on('join', ({ room, name },) => { // callback
     console.log('Connected user', { name, room }, socket.id);
     addUser(socket.id, name, room)
-    // console.log('Connected user got from helper', 
-    // getUser(socket.id));
+    console.log('Connected user got from addUser and getUser',
+      getUser(socket.id));
     socket.emit('message', {
       user: 'admin',
       text: `${name}, welcome to room ${room}`
@@ -109,6 +107,12 @@ io.on('connection', (socket) => {
         text: `${user.name} has left the chat`// was w/out reason
       });
     }
+  });
+
+  socket.on('getUsers', (room) => {
+    console.log('getUsers emitted');
+    let res = getUsersInRoom(room);
+    console.log('these are the users', res);
   });
 
   // socket.on("upload", (file, callback) => {
